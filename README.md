@@ -2,13 +2,15 @@
 
 **Quetzal** is a GUI frontend for managing your Wix Local Editor projects made with PyQt5.
 
+<br>
+
 This app is in alpha, so it requires some work to run. However, it's come far enough along that **v0.2** will probably come packaged as an executable for Windows, Mac, and Linux. That being said, it depends on the Corvid Local Editor, which is also in alpha.
+
+<br>
 
 ***Please submit issues, and specify your OS***
 
-
 ![Quetzal1.png](images/Quetzal1.png)
-
 
 ## Installation/Usage
 
@@ -16,20 +18,19 @@ This app is in alpha, so it requires some work to run. However, it's come far en
 
 GitClone this repository and run using **python3.5** or newer.
 
-
 **Install Dependencies:**
 
 `python3.8 -m pip install PyQt5 pyqtspinner`
 
 `npm i -g corvid-cli --save-dev corvid-types`
 
-
 **Run:**
 
 `python3.8 main.py`
 
-![quetzal2.png](images/quetzal2.png)
+<br>
 
+![quetzal2.png](images/quetzal2.png)
 
 ## FAQ
 
@@ -37,11 +38,13 @@ Why not **python3**?
 
 Because it's 2020 and the app will be compiled into an executable anyway.
 
+<br>
 
 Why doesn't **{insert here}** work?
 
 It's an alpha, so please submit detailed issue reports so that stuff can be fixed, including the name of your operating system.
 
+<br>
 
 What's known not to work?
 
@@ -55,13 +58,13 @@ What's known not to work?
 
 - Better column sizing for the projects tree on appstart.
 
-
 **Other:**
 
 - The app font and color settings are not functional yet, but will be very soon
 
 - The icon - Yes, it's ugly even for a placeholder. That will change eventually.
-
+  
+  <br>
 
 ## What's on the docket?
 

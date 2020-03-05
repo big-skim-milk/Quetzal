@@ -1,13 +1,14 @@
 import sys
 from quetzal import *
 from gui import (Ui_MainWindow, QtWidgets, QtGui, QtCore)
-from about_dialog import Ui_About_Dialog
-from cal_dialog import Ui_Cal_Dialog
-from clone_dialog import Ui_Clone_Dialog
-from confirm_dialog import Ui_Confirm_Dialog
+from dialogs.about_dialog import Ui_About_Dialog
+from dialogs.cal_dialog import Ui_Cal_Dialog
+from dialogs.clone_dialog import Ui_Clone_Dialog
+from dialogs.confirm_dialog import Ui_Confirm_Dialog
+from dialogs.settings_dialog import Ui_Settings_Dialog
+from dialogs.tree_dialog import Ui_Tree_Dialog
 from pyqtspinner.spinner import WaitingSpinner
-from settings_dialog import Ui_Settings_Dialog
-from tree_dialog import Ui_Tree_Dialog
+from get_styles import STYLES
 from threading import Timer
 from workers import (Worker, WorkerSignals, Updater)
 
@@ -24,6 +25,54 @@ def statusDisplay(_elem_, _status_=True):
 
 class QuetzalApp(Ui_MainWindow):
     """tie functionality to qt frontend"""
+
+    def __init__(self, window):
+        self.setupUi(window)
+        self.threadpool = QtCore.QThreadPool()
+        self.current_selected = ''
+        self.full_selected = ''
+        self.spinner = WaitingSpinner(
+            self.centralwidget,
+            roundness=70.0, opacity=15.0,
+            fade=70.0, radius=10.0, lines=12,
+            line_length=10.0, line_width=5.0,
+            speed=1.0, color=(67, 67, 72)
+        )
+        self.is_updating = False
+
+        if not isInit():
+            doInit(False)
+
+        """set dynamic gui object values"""
+        self.search_bar.setPlaceholderText('Search by name or path')
+        self.error_display.setText('')
+        self.qzRefresh()
+
+        """connect gui objects to respective functions"""
+        self.projects_tree.customContextMenuRequested.connect(self.contextMenu)
+        self.projects_tree.setEditTriggers(self.projects_tree.NoEditTriggers)
+        self.projects_tree.doubleClicked.connect(self.qzOpen)
+        self.projects_tree.currentItemChanged.connect(self.treeFocus)
+        self.search_bar.textChanged.connect(self.lineEditFocus)
+        self.open_button.clicked.connect(self.qzOpen)
+        self.pull_all.clicked.connect(self.qzUpdateAll)
+        self.open_terminal.clicked.connect(self.qzTerminal)
+        self.open_explorer.clicked.connect(self.qzExplorer)
+
+        """file dialog creation for menu options"""
+        self.actionReset.triggered.connect(self.qzRefreshAll)
+        self.actionChange_Main_Folder.triggered.connect(self.changeMainDir)
+        self.actionCreate_New.triggered.connect(self.setCloneParams)
+        self.actionAdd_Project_Path.triggered.connect(self.appendQzParams)
+        self.actionDelete_Project_Path.triggered.connect(self.rmQzParams)
+        self.actionAdd_Watched_Folder.triggered.connect(self.appendDirParams)
+        self.actionRemove_Watched_Folder.triggered.connect(self.rmDirParams)
+        self.actionChange_Settings.triggered.connect(self.changeSettings)
+        self.actionAbout.triggered.connect(self.aboutDisplay)
+        self.actionRefresh.triggered.connect(self.qzRefresh)
+        self.actionQuit.triggered.connect(sys.exit)
+        self.actionLogin.triggered.connect(loginHandler)
+        self.actionLogout.triggered.connect(logoutHandler)
 
     def treeDialog(self, params):
         dialog = QtWidgets.QDialog()
@@ -68,7 +117,8 @@ class QuetzalApp(Ui_MainWindow):
 
     def confirmDialog(self):
         dialog = QtWidgets.QDialog()
-        dialog.ui = Ui_Confirm_Dialog(self.full_selected['slug'])
+        message = f"Are you sure you want to delete {self.full_selected['slug']}?"
+        dialog.ui = Ui_Confirm_Dialog(message)
         dialog.ui.setupUi(dialog)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             return True
@@ -309,7 +359,7 @@ class QuetzalApp(Ui_MainWindow):
         self.projects_tree.clear()
         for _qz_ in getProjects(True):
             if _qz_['favorited'] == 'true':
-                _fav_ = u'\u2713'
+                _fav_ = u'\u2714'
             else:
                 _fav_ = ''
 
@@ -333,6 +383,8 @@ class QuetzalApp(Ui_MainWindow):
 
             qz_item.setFlags(qz_item.flags() | 128 | 1)
             qz_item.setTextAlignment(2, QtCore.Qt.AlignCenter)
+            qz_item.setTextAlignment(
+                3, QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
 
         statusDisplay(self.error_display)
 
@@ -369,22 +421,10 @@ class QuetzalApp(Ui_MainWindow):
     def contextMenu(self, position):
         """context menu items"""
         menu = QtWidgets.QMenu()
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #434348;
-                color: #f5f6f7;
-            }
-            
-            QMenu::item:selected {
-                background-color: #00B554;
-            }
-            
-            QMenu::item:pressed {
-                background-color: #00B554;
-            }
-            """)
+        menu.setStyleSheet(STYLES())
         fav_action = menu.addAction('Toggle Favorited')
         deadline_action = menu.addAction('Change Deadline')
+        update_action = menu.addAction('Update Project')
         rm_action = menu.addAction('Remove From List')
         action = menu.exec_(self.projects_tree.mapToGlobal(position))
         if action == fav_action:
@@ -398,6 +438,8 @@ class QuetzalApp(Ui_MainWindow):
                     self.qzRefresh()
                 else:
                     statusDisplay(self.error_display, False)
+        elif action == update_action:
+            updateProject(self.current_selected)
 
     def lineEditFocus(self):
         self.last_focused = 'line'
@@ -406,84 +448,6 @@ class QuetzalApp(Ui_MainWindow):
     def treeFocus(self):
         self.last_focused = 'tree'
         self.currentSelection()
-
-    def __init__(self, window):
-        self.setupUi(window)
-        self.threadpool = QtCore.QThreadPool()
-        self.current_selected = ''
-        self.full_selected = ''
-        self.spinner = WaitingSpinner(
-            self.centralwidget,
-            roundness=70.0, opacity=15.0,
-            fade=70.0, radius=10.0, lines=12,
-            line_length=10.0, line_width=5.0,
-            speed=1.0, color=(67, 67, 72)
-        )
-        self.is_updating = False
-
-        if not isInit():
-            doInit(False)
-
-        qz_tree = self.projects_tree
-        qz_data = getProjects(True)
-
-        """set dynamic gui object values"""
-        self.search_bar.setPlaceholderText('Filter')
-        self.error_display.setText('')
-
-        for _qz_ in qz_data:
-            if _qz_['favorited'] == 'true':
-                _fav_ = u'\u2713'
-            else:
-                _fav_ = ''
-
-            if _qz_['due_date'] == 'none' or _qz_['due_date'] == '':
-                _date_ = ''
-            else:
-                date_list = _qz_['due_date'].split(', ')
-                D = [int(d) for d in date_list[0].split(' ')]
-                T = [int(t) for t in date_list[1].split(':')]
-                _d_ = QtCore.QDate(
-                    D[2], D[1], D[0]).toString('ddd MMM dd yyyy')
-                _t_ = QtCore.QTime(T[0], T[1]).toString('h:mm ap')
-                _date_ = f"{_d_}, {_t_}"
-
-            qz_item = QtWidgets.QTreeWidgetItem(qz_tree, [
-                _qz_['slug'],
-                _qz_['abs_dir'].replace(f"{Path.home()}/", ''),
-                _fav_,
-                _date_
-            ])
-
-            qz_item.setFlags(qz_item.flags() | 128 | 1)
-            qz_item.setTextAlignment(2, QtCore.Qt.AlignCenter)
-
-        """connect gui objects to respective functions"""
-        qz_tree.customContextMenuRequested.connect(self.contextMenu)
-        qz_tree.setEditTriggers(qz_tree.NoEditTriggers)
-        qz_tree.doubleClicked.connect(self.qzOpen)
-        qz_tree.currentItemChanged.connect(self.treeFocus)
-        self.search_bar.textChanged.connect(self.lineEditFocus)
-        self.open_button.clicked.connect(self.qzOpen)
-        self.pull_button.clicked.connect(self.qzUpdate)
-        self.pull_all.clicked.connect(self.qzUpdateAll)
-        self.open_terminal.clicked.connect(self.qzTerminal)
-        self.open_explorer.clicked.connect(self.qzExplorer)
-
-        """file dialog creation for menu options"""
-        self.actionReset.triggered.connect(self.qzRefreshAll)
-        self.actionChange_Main_Folder.triggered.connect(self.changeMainDir)
-        self.actionCreate_New.triggered.connect(self.setCloneParams)
-        self.actionAdd_Project_Path.triggered.connect(self.appendQzParams)
-        self.actionDelete_Project_Path.triggered.connect(self.rmQzParams)
-        self.actionAdd_Watched_Folder.triggered.connect(self.appendDirParams)
-        self.actionRemove_Watched_Folder.triggered.connect(self.rmDirParams)
-        self.actionChange_Settings.triggered.connect(self.changeSettings)
-        self.actionAbout.triggered.connect(self.aboutDisplay)
-        self.actionRefresh.triggered.connect(self.qzRefresh)
-        self.actionQuit.triggered.connect(sys.exit)
-        self.actionLogin.triggered.connect(loginHandler)
-        self.actionLogout.triggered.connect(logoutHandler)
 
 
 app = QtWidgets.QApplication(sys.argv)

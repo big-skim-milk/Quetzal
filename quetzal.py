@@ -1,4 +1,3 @@
-"""python version of lix-cli"""
 import copy
 import json
 import os
@@ -78,15 +77,7 @@ def subdirs(project_path):
 
     def search(prop):
         _path_ = project_path + valid[prop]['path']
-        try:
-            found = run(
-                ['ls', '-R', _path_], universal_newlines=True, capture_output=True)
-            found.check_returncode()
-
-            to_open = str(found.stdout).splitlines()
-        except CalledProcessError:
-            return f"""main.py: search failed at {prop}
-{CalledProcessError}"""
+        to_open = Path(_path_).rglob("*")
 
         def check(_):
             if _.endswith('tsconfig.json') or _.endswith('authorization-config.json'):
@@ -184,8 +175,8 @@ def doInit(refresh=False):
         init_project['_config'] = {
             'update_on_start': 'false',
             'terminal': TERMINAL[platform.system()],
-            'editor': 'none',
-            'font': 'none',
+            'text_editor': 'none',
+            'font': {'size': 'none', 'family': 'none'},
             'highlight_color': 'none'
         }
     else:
@@ -303,7 +294,6 @@ def withConfig(config=None):
     raise f'main.py: {config} not a valid parameter for config method'
 
 
-
 def create(_dir_, _url_, do_debug=False):
     """
     clones a new project
@@ -382,7 +372,10 @@ def openInTerminal(_id_):
     """opens project directory in terminal emulator"""
     try:
         target_dir = getByContext(_id_)
-        usr_emulator = withConfig('terminal') or TERMINAL[platform.system()]
+        try:
+            usr_emulator = withConfig('terminal')
+        except KeyError:
+            usr_emulator = TERMINAL[platform.system()]
 
         opening_terminal = run([usr_emulator], cwd=target_dir)
         opening_terminal.check_returncode()
@@ -390,8 +383,6 @@ def openInTerminal(_id_):
     except CalledProcessError:
         raise f"""main.py: Error opening {_id_}
 {CalledProcessError}"""
-    except KeyError:
-        raise 'terminal emulator not found'
 
 
 def appendProject(_id_):
@@ -430,7 +421,7 @@ def deleteProject(_id_):
     return 'done'
 
 
-def updateProject(_id_, do_debug=False, over_ride=False, el_display=None):
+def updateProject(_id_, do_debug=False, over_ride=False):
     """updates watched project by name or index"""
     to_update = getByContext(_id_)
     if over_ride:
@@ -449,7 +440,6 @@ def updateProject(_id_, do_debug=False, over_ride=False, el_display=None):
             args, cwd=to_update, capture_output=True)
         npx_updating.check_returncode()
 
-        print(type(npx_updating.stdout))
         print(npx_updating.stdout)
 
         if npx_updating.stderr:
@@ -471,11 +461,7 @@ def getSnapshots(_id_):
     if not os.path.isdir(curr_f):
         raise f'main.py: {_id_} has no snapshots yet!'
 
-    try:
-        return [f for f in os.listdir(curr_f) if os.path.isdir(f)]
-    except:
-        raise f"""main.py: Error querying snapshots at {curr_f}
-{CalledProcessError}"""
+    return [f for f in Path(curr_f).glob("*") if os.path.isdir(f)]
 
 
 def toggleFavorite(_id_):
