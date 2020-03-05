@@ -123,9 +123,14 @@ def isInit():
 
 def getProjects(fav_first=None):
     """current projects list"""
-    if fav_first != None:
-        return sorted(projects()['local_projects'], key=lambda k: k['favorited'], reverse=True)
-    return projects()['local_projects']
+    try:
+        if fav_first != None:
+            return sorted(projects()['local_projects'], key=lambda k: k['favorited'], reverse=True)
+        return projects()['local_projects']
+    except KeyError:
+        print("Initiating projects, please wait and try starting the app again when the process ends")
+        doInit()
+        sys.exit(0)
 
 
 def getDirs():
