@@ -10,17 +10,7 @@ from dialogs.tree_dialog import Ui_Tree_Dialog
 from pyqtspinner.spinner import WaitingSpinner
 from get_styles import STYLES
 from threading import Timer
-from workers import (Worker, WorkerSignals, Updater)
-
-
-def statusDisplay(_elem_, _status_=True):
-    if _status_:
-        _elem_.setText('Success!')
-        _elem_.show()
-    else:
-        _elem_.setText('Oops! Process aborted')
-        _elem_.show()
-    Timer(3, _elem_.hide).start()
+from workers import (FileWatcher, Updater)
 
 
 class QuetzalApp(Ui_MainWindow):
@@ -28,7 +18,14 @@ class QuetzalApp(Ui_MainWindow):
 
     def __init__(self, window):
         self.setupUi(window)
+
+        if not isInit():
+            doInit()
+
         self.threadpool = QtCore.QThreadPool()
+        self.filewatcher = FileWatcher()
+        self.filewatcher.signals.filechange.connect(self.qzRefresh)
+        self.filewatcher.signals.dirchange.connect(self.qzRefreshAll)
         self.current_selected = ''
         self.full_selected = ''
         self.spinner = WaitingSpinner(
@@ -40,19 +37,21 @@ class QuetzalApp(Ui_MainWindow):
         )
         self.is_updating = False
 
-        if not isInit():
-            doInit(False)
-
         """set dynamic gui object values"""
         self.search_bar.setPlaceholderText('Search by name or path')
-        self.error_display.setText('')
-        self.qzRefresh()
+        self.error_display.setText('Welcome!')
+        Timer(3, self.clearMessage).start()
+        self.qzRefresh(True)
 
         """connect gui objects to respective functions"""
         self.projects_tree.customContextMenuRequested.connect(self.contextMenu)
         self.projects_tree.setEditTriggers(self.projects_tree.NoEditTriggers)
         self.projects_tree.doubleClicked.connect(self.qzOpen)
         self.projects_tree.currentItemChanged.connect(self.treeFocus)
+        self.projects_tree.adjustSize()
+        self.projects_tree.resizeColumnToContents(0)
+        self.projects_tree.resizeColumnToContents(1)
+        self.projects_tree.resizeColumnToContents(3)
         self.search_bar.textChanged.connect(self.lineEditFocus)
         self.open_button.clicked.connect(self.qzOpen)
         self.pull_all.clicked.connect(self.qzUpdateAll)
@@ -166,114 +165,112 @@ class QuetzalApp(Ui_MainWindow):
     def qzExplorer(self):
         """open file explorer middleman"""
         if openInExplorer(self.current_selected) == 'done':
-            statusDisplay(self.error_display)
+            self.statusDisplay()
         else:
-            statusDisplay(self.error_display, False)
+            self.statusDisplay(False)
 
     def qzUpdate(self):
         """updater middleman"""
+        if self.is_updating:
+            return False
+
         if isinstance(self.current_selected, str) and len(self.current_selected) > 0:
             slug = self.full_selected['slug']
 
-            def updating(progress_callback):
-                updateProject(self.current_selected)
-                progress_callback.emit(print('updating'))
-
-            def printSuccess():
+            def printEnd(message):
+                self.is_updating = False
                 self.spinner.stop()
-                self.error_display.setText(f'{slug} successfully updated!')
-                self.error_display.show()
-                Timer(3, self.error_display.hide).start()
+                if message == 'success':
+                    self.error_display.setText(f'{slug} successfully updated!')
+                else:
+                    self.error_display.setText(f'Error: {message}')
+                Timer(3, self.clearMessage).start()
 
-            def printReject():
-                self.spinner.stop()
-                self.error_display.setText(f'Sorry! {slug} was NOT updated...')
-                Timer(3, self.error_display.hide).start()
+            def printReject(error):
+                # self.is_updating = False
+                # self.spinner.stop()
+                self.error_display.setText(f'Error: {error}')
+                # Timer(3, self.clearMessage).start()
 
-            def showUpdating(msg):
-                print(msg)
+            def showUpdating(current_updating):
+                self.is_updating = True
+                self.spinner.start()
+                self.error_display.setText(f'Now updating {current_updating}')
 
-            up_stat = Worker(updating)
-            up_stat.signals.result.connect(showUpdating)
-            up_stat.signals.finished.connect(printSuccess)
-            up_stat.signals.progress.connect(showUpdating)
+            def percentCompleted(_ix_, _len_):
+                print(_ix_/_len_)
+
+            up_stat = Updater(self.current_selected, self.debug_checkbox.isChecked(
+            ), self.over_ride.isChecked())
+            up_stat.signals.current.connect(showUpdating)
+            up_stat.signals.finished.connect(printEnd)
+            up_stat.signals.progress.connect(percentCompleted)
             up_stat.signals.error.connect(printReject)
 
             self.threadpool.start(up_stat)
             self.spinner.start()
 
             if up_stat == 'done':
-                statusDisplay(self.error_display)
+                self.statusDisplay()
             else:
-                statusDisplay(self.error_display, False)
+                self.statusDisplay(False)
 
     def qzUpdateAll(self):
         """update all middleman"""
         if self.is_updating:
             return False
 
+        current = ''
+
+        def printEnd():
+            self.is_updating = False
+            self.spinner.stop()
+            self.error_display.setText(f'{current} successfully updated!')
+            Timer(3, self.clearMessage).start()
+
+        def printReject(error):
+            self.is_updating = False
+            self.spinner.stop()
+            self.error_display.setText(f'Error: {error}')
+            Timer(3, self.clearMessage).start()
+
+        def showUpdating(current_updating):
+            current = current_updating
+            self.error_display.setText(f'Now updating {current_updating}')
+
+        def percentCompleted(percentage):
+            print(percentage)
+
+        def reAssignButton():
+            self.pull_all.setText('Abort')
+            self.pull_all.clicked.connect(processAbort)
+
+        def processAbort():
+            Updater('stop')
+            self.spinner.stop()
+            self.pull_all.setText('Update All')
+            self.pull_all.clicked.connect(self.qzUpdateAll)
+            self.is_updating = False
+
+        up_stat = Updater('all', self.debug_checkbox.isChecked(),
+                          self.over_ride.isChecked())
+        up_stat.signals.current.connect(showUpdating)
+        up_stat.signals.finished.connect(printEnd)
+        up_stat.signals.error.connect(printReject)
+        up_stat.signals.progress.connect(percentCompleted)
+
         self.is_updating = True
-
-        def update_status(prop=False):
-            do_update = Updater(
-                self.debug_checkbox.isChecked(), self.over_ride.isChecked())
-
-            props = {
-                'prev_slug': '',
-                'curr_slug': '',
-                'ok_updated': [],
-                'curr_status': ''
-            }
-
-            up_stat.signals.result.connect(showUpdatingAll)
-            up_stat.signals.progress.connect(showUpdatingAll)
-
-            def showUpdatingAll():
-                print(do_update.status)
-                props['prev_slug'] = props['curr_slug']
-                props['curr_slug'] = do_update._current
-                props['ok_updated'].append(props['prev_slug'])
-                props['curr_status'] = do_update.status
-                self.error_display.setText(
-                    f'{props["prev_slug"]} successfully updated!')
-
-            if not prop:
-                self.spinner.start()
-                return do_update
-            try:
-                return props[prop]
-            except KeyError:
-                raise f"{prop} is not a valid key"
-
-        def printSuccessAll():
-            self.spinner.stop()
-            self.error_display.setText('Projects successfully updated!')
-            self.error_display.show()
-            Timer(3, self.error_display.hide).start()
-            self.is_updating = False
-
-        def printRejectAll():
-            self.spinner.stop()
-            last_success = update_status('ok_updated')[:-1]
-            failure_at = update_status('curr_slug')
-            self.error_display.setText(
-                f'Sorry! {last_success} was updated, but not {failure_at}...')
-            Timer(3, self.error_display.hide).start()
-            self.is_updating = False
-
-        up_stat = Worker(update_status)
-        up_stat.signals.finished.connect(printSuccessAll)
-        up_stat.signals.error.connect(printRejectAll)
-
+        self.spinner.start()
         self.threadpool.start(update_status)
+        Timer(3, reAssignButton).start()
 
     def qzRefreshAll(self):
         """init refresh output handler"""
         if doInit(True) == 'done':
-            statusDisplay(self.error_display)
+            self.statusDisplay()
             self.qzRefresh()
         else:
-            statusDisplay(self.error_display, False)
+            self.statusDisplay(False)
 
     def setCloneParams(self):
         """interim multiple prompt setup"""
@@ -285,21 +282,32 @@ class QuetzalApp(Ui_MainWindow):
             do_debug = params['debug']
 
             if create(_dir_, _url_, do_debug) == 'done':
-                statusDisplay(self.error_display)
+                self.statusDisplay()
             else:
-                statusDisplay(self.error_display, False)
+                self.statusDisplay(False)
         else:
-            statusDisplay(self.error_display, False)
+            self.statusDisplay(False)
 
     def appendDirParams(self):
         """add watched directory middleman"""
         abs_path = self.fileDialog()
-        if abs_path and abs_path != None:
-            if appendDir(abs_path) == 'done':
-                statusDisplay(self.error_display)
-                self.qzRefresh()
-            else:
-                statusDisplay(self.error_display, False)
+        if not abs_path:
+            return self.statusDisplay(False)
+        print(abs_path)
+
+        def appendSuccess():
+            self.statusDisplay()
+            self.qzRefresh()
+
+        def appendFail(error):
+            print(error)
+            self.statusDisplay(False)
+
+        adding_dir = self.filewatcher.addWatched(str(abs_path))
+        adding_dir.signals.success.connect(appendSuccess)
+        adding_dir.signals.failure.connect(appendFail)
+
+        self.threadpool.start(adding_dir)
 
     def rmDirParams(self):
         """remove watched directory middleman"""
@@ -310,12 +318,22 @@ class QuetzalApp(Ui_MainWindow):
             'data': tree_data,
         })
 
-        if appendDir(abs_path) == 'done':
-            statusDisplay(self.error_display)
+        def rmSuccess():
+            self.statusDisplay()
             self.qzRefreshAll()
             self.qzRefresh()
-        else:
-            statusDisplay(self.error_display, False)
+
+        def rmFail():
+            self.statusDisplay(False)
+
+        if not abs_path:
+            return rmFail()
+
+        removing_dir = self.filewatcher.rmWatched(abs_path)
+        removing_dir.signals.success.connect(rmSuccess)
+        removing_dir.signals.failure.connect(rmFail)
+
+        self.threadpool.start(removing_dir)
 
     def changeMainDir(self):
         """change main scanned projects directory"""
@@ -324,9 +342,9 @@ class QuetzalApp(Ui_MainWindow):
 
         main_dir_set = mainDir(new_main_dir)
         if main_dir_set == 'done':
-            statusDisplay(self.error_display)
+            self.statusDisplay()
         else:
-            statusDisplay(self.error_display, False)
+            self.statusDisplay(False)
 
     def appendQzParams(self):
         """add project middleman"""
@@ -334,11 +352,11 @@ class QuetzalApp(Ui_MainWindow):
 
         if new_dir:
             if appendProject(new_dir) == 'done':
-                statusDisplay(self.error_display)
+                self.statusDisplay()
                 self.qzRefresh()
                 self.qzRefreshAll()
             else:
-                statusDisplay(self.error_display, False)
+                self.statusDisplay(False)
 
     def rmQzParams(self):
         """remove project middleman"""
@@ -348,16 +366,16 @@ class QuetzalApp(Ui_MainWindow):
 
         if to_rm:
             if deleteProject(to_rm) == 'done':
-                statusDisplay(self.error_display)
+                self.statusDisplay()
                 self.qzRefresh()
                 self.qzRefreshAll()
             else:
-                statusDisplay(self.error_display, False)
+                self.statusDisplay(False)
 
-    def qzRefresh(self):
+    def qzRefresh(self, initiating=False):
         """refresh project tree"""
         self.projects_tree.clear()
-        for _qz_ in getProjects(True):
+        for _qz_ in getProjects():
             if _qz_['favorited'] == 'true':
                 _fav_ = u'\u2714'
             else:
@@ -383,10 +401,9 @@ class QuetzalApp(Ui_MainWindow):
 
             qz_item.setFlags(qz_item.flags() | 128 | 1)
             qz_item.setTextAlignment(2, QtCore.Qt.AlignCenter)
-            qz_item.setTextAlignment(
-                3, QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
 
-        statusDisplay(self.error_display)
+        if not initiating:
+            self.statusDisplay()
 
     def qzDeadline(self):
         """change project deadlines"""
@@ -406,17 +423,17 @@ class QuetzalApp(Ui_MainWindow):
         new_deadline = self.calendarDialog(cal_data)
         if new_deadline:
             if setDeadline(self.full_selected['slug'], new_deadline) == 'done':
-                statusDisplay(self.error_display)
+                self.statusDisplay()
                 self.qzRefresh()
             else:
-                statusDisplay(self.error_display, False)
+                self.statusDisplay(False)
 
     def qzFavToggle(self):
         if toggleFavorite(self.current_selected) == 'done':
-            statusDisplay(self.error_display)
+            self.statusDisplay()
             self.qzRefresh()
         else:
-            statusDisplay(self.error_display, False)
+            self.statusDisplay(False)
 
     def contextMenu(self, position):
         """context menu items"""
@@ -434,12 +451,12 @@ class QuetzalApp(Ui_MainWindow):
         elif action == rm_action:
             if self.confirmDialog():
                 if deleteProject(self.current_selected) == 'done':
-                    statusDisplay(self.error_display)
+                    self.statusDisplay()
                     self.qzRefresh()
                 else:
-                    statusDisplay(self.error_display, False)
+                    self.statusDisplay(False)
         elif action == update_action:
-            updateProject(self.current_selected)
+            self.qzUpdate()
 
     def lineEditFocus(self):
         self.last_focused = 'line'
@@ -448,6 +465,16 @@ class QuetzalApp(Ui_MainWindow):
     def treeFocus(self):
         self.last_focused = 'tree'
         self.currentSelection()
+
+    def clearMessage(self):
+        self.error_display.setText('')
+
+    def statusDisplay(self, _status_=True):
+        if _status_:
+            self.error_display.setText('Success!')
+        else:
+            self.error_display.setText('Oops! Process aborted')
+        Timer(3, self.clearMessage).start()
 
 
 app = QtWidgets.QApplication(sys.argv)

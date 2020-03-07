@@ -1,5 +1,7 @@
 font_pattern = "font: "
 color_pattern = "color: "
+IFS = """
+"""
 
 
 def setCustomStyles(f, c):
@@ -12,13 +14,13 @@ def setCustomStyles(f, c):
             for line in old_style:
                 if font_pattern in line:
                     to_write.append(line.replace(line.split(font_pattern)[
-                                    1], "75 {} \"{}\";".format(f['post_size'], f['post_fam'])))
+                                    1], "75 {} \"{}\";".format(f['size'], f['fam'])))
                 elif color_pattern in line:
                     to_write.append(line.replace(
-                        line.split(color_pattern)[1], c['new'] + ";"))
+                        line.split(color_pattern)[1], c + ";"))
                 else:
                     to_write.append(line)
-            new_style.write("\n".join(to_write))
+            new_style.write(IFS.join(to_write).replace('\n\n', '\n'))
             return 'done'
     except KeyError:
         return 'failed'

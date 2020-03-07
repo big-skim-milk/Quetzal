@@ -51,6 +51,10 @@ QLabel {
   font-weight: 500;
 }
 
+QLabel#error_display {
+  text-align: right;
+}
+
 QTreeWidget {
   font-weight: 400;
   background-color: #f5f6f7;

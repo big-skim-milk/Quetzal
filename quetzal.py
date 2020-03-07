@@ -40,6 +40,14 @@ def projects():
             return {'_init': 'false'}
 
 
+def loggedIn():
+    try:
+        return projects()['logged_in'] != 'false'
+    except KeyError:
+        doInit()
+        return loggedIn()
+
+
 def dirScan(dir_to_scan):
     """10x faster parsing with ls -R over find!!"""
     found_files = [str(f)
@@ -91,11 +99,12 @@ def subdirs(project_path):
     return " ".join([search(_key_) for _key_ in {**valid}][0]) or None
 
 
-def write(new_json):
+def qzWrite(new_json):
     """rewrites json file with requested changes"""
+    new_json['last_updated'] = datetime.now()
     with open('projects.json', 'w', encoding='utf-8') as current_json:
         json.dump(new_json, current_json,
-                  ensure_ascii=False, indent=4, default=str, sort_keys=True)
+                  ensure_ascii=False, indent=2, default=str, sort_keys=True)
         return 'done'
 
 
@@ -109,24 +118,72 @@ def isInt(n_o):
 
 def isInit():
     """checks json to ensure existing install"""
-    return projects()['_init'] and projects()['_init'] != 'false'
+    try:
+        return projects()['_init'] and projects()['_init'] != 'false'
+    except KeyError:
+        doInit()
+        return True
 
 
-def getProjects(fav_first=None):
+def getProjects():
     """current projects list"""
     try:
-        if fav_first != None:
-            return sorted(projects()['local_projects'], key=lambda k: k['favorited'], reverse=True)
         return projects()['local_projects']
     except KeyError:
-        print("Initiating projects, please wait and try starting the app again when the process ends")
         doInit()
-        sys.exit(0)
+        return getProjects()
+
+
+def writeProjects(new_projects):
+    if not isinstance(new_projects, list):
+        raise 'Not a valid projects format'
+
+    try:
+        re_write = clonedProjects()
+        current_projects = getProjects()
+        to_keep = [p for p in current_projects if p['abs_dir'] in new_projects]
+        for _p_ in new_projects:
+            if not _p_ in to_keep:
+                to_keep.append({
+                    'slug': _p_.split('/')[-1],
+                    'abs_dir': _p_,
+                    'last_updated': datetime.now(),
+                    'favorited': 'false',
+                    'due_date': 'none'
+                })
+
+        re_write['local_projects'] = to_keep
+        qzWrite(re_write)
+        return 'done'
+    except:
+        raise 'Uncaught error writing projects'
 
 
 def getDirs():
     """current directories dictionary"""
-    return projects()['_watched']
+    try:
+        return projects()['_watched']
+    except KeyError:
+        doInit()
+        return getDirs()
+
+
+def writeDirs(new_dirs):
+    if not isinstance(new_dirs, list):
+        raise "Not a valid dirs format"
+
+    try:
+        re_write = clonedProjects()
+        for new_dir in new_dirs:
+            if new_dir == mainDir():
+                re_write['main'] = new_dir
+            else:
+                new_key = new_dir.split('/')[-1]
+                re_write['_watched'][new_key] = new_dir
+
+        return 'done'
+    except:
+        raise 'Uncaught error writing dirs'
 
 
 def clonedProjects():
@@ -155,7 +212,7 @@ def mainDir(new_dir=None):
     except KeyError:
         raise 'Replacement failed'
 
-    write(qz_clone)
+    qzWrite(qz_clone)
     return 'done'
 
 
@@ -167,10 +224,11 @@ def doInit(refresh=False):
         '_os': platform.system(),
         '_watched': {'main': usr_home},
         'last_updated': datetime.now(),
-        'local_projects': dirScan(usr_home)
+        'local_projects': dirScan(usr_home),
     }
 
     if not refresh:
+        init_project['logged_in'] = 'false'
         init_project['_created'] = datetime.now()
         init_project['_config'] = {
             'update_on_start': 'false',
@@ -180,41 +238,12 @@ def doInit(refresh=False):
             'highlight_color': 'none'
         }
     else:
+        init_project['logged_in'] = projects()['logged_in']
         init_project['_created'] = projects()['_created']
         init_project['_config'] = projects()['_config']
 
-    write(init_project)
+    qzWrite(init_project)
     return 'done'
-
-
-def onStart():
-    """watcher function that runs on appstart"""
-    scanned_dirs = []
-    current_dirs = getProjects()
-    existing_slugs = [o['slug'] for o in current_dirs]
-    qz_clone = clonedProjects()['local_projects']
-
-    for _key_, _dir_ in getDirs().items():
-        for _item_ in dirScan(_dir_):
-            _slug_ = _item_['slug']
-            if not _slug_ in existing_slugs:
-                scanned_dirs.append({
-                    'abs_dir': _item_,
-                    'slug': _item_.split('/')[-1],
-                    'last_updated': datetime.now(),
-                    'due_date': 'none',
-                    'favorited': 'false'
-                })
-            else:
-                curr_item = [o['slug'] for o in current_dirs if o == _slug_][0]
-                curr_item['last_updated'] = datetime.now()
-                scanned_dirs.append(curr_item)
-
-    updated_set = set(scanned_dirs)
-    qz_clone['local_projects'] = list(updated_set)
-
-    write(qz_clone)
-    return qz_clone['_config']
 
 
 def getByContext(context):
@@ -241,57 +270,27 @@ def getByContext(context):
     return False
 
 
-def appendDir(location):
-    """writes a new directory to watch to projects.json [projects]"""
-    if not isinstance(location, str):
-        return False
-
-    qz_clone = clonedProjects()
-    new_dir = {
-        'abs_dir': location,
-        'slug': location.split('/')[-1]
-    }
-    qz_clone['last_updated'] = datetime.now()
-    qz_clone['_watched'] = getDirs()
-    qz_clone['_watched'][new_dir['slug']] = new_dir['abs_dir']
-    write(qz_clone)
-    return 'done'
-
-
-def rmDir(name):
-    """removes directory from [projects] in projects.json"""
-    qz_clone = clonedProjects()
-
-    if getDirs()[name]:
-        dir_to_rm = name
-    else:
-        dir_to_rm = [o['slug'] for o in {**getDirs()} if o == name][0]
-
-    if dir_to_rm == 'main':
-        return Exception('main.py: Main directory cannot be deleted!')
-    del qz_clone['_watched'][dir_to_rm]
-    qz_clone['last_updated'] = datetime.now()
-    write(qz_clone)
-    return 'done'
-
-
 def withConfig(config=None):
     """sets or gets the config object"""
-    qz_clone = clonedProjects()
-    if not config:
-        return projects()['_config']
-    if isinstance(config, str):
-        try:
-            return projects()['_config'][config]
-        except:
-            raise 'main.py: Not a valid key in config'
-    if isinstance(config, dict):
-        for _key_ in {**config}:
-            qz_clone['_config'][_key_] = config[_key_]
+    if isInit():
+        qz_clone = clonedProjects()
+        if not config:
+            return projects()['_config']
+        if isinstance(config, str):
+            try:
+                return projects()['_config'][config]
+            except:
+                raise 'main.py: Not a valid key in config'
+        if isinstance(config, dict):
+            for _key_ in {**config}:
+                qz_clone['_config'][_key_] = config[_key_]
 
-        write(qz_clone)
-        return qz_clone['_config']
-    raise f'main.py: {config} not a valid parameter for config method'
+            qzWrite(qz_clone)
+            return qz_clone['_config']
+        raise f'main.py: {config} not a valid parameter for config method'
+    else:
+        doInit()
+        return withConfig(config)
 
 
 def create(_dir_, _url_, do_debug=False):
@@ -398,9 +397,8 @@ def appendProject(_id_):
             'due_date': 'none',
             'favorited': 'false'
         }
-        qz_clone['last_updated'] = datetime.now()
         qz_clone['local_projects'].append(new_project)
-        write(qz_clone)
+        qzWrite(qz_clone)
         return 'done!'
     except:
         raise f'main.py: Error while appending {_id_}'
@@ -417,42 +415,8 @@ def deleteProject(_id_):
             to_write.append(_item_)
 
     qz_clone['local_projects'] = to_write
-    write(qz_clone)
+    qzWrite(qz_clone)
     return 'done'
-
-
-def updateProject(_id_, do_debug=False, over_ride=False):
-    """updates watched project by name or index"""
-    to_update = getByContext(_id_)
-    if over_ride:
-        flag = '--override'
-    else:
-        flag = '--move'
-
-    debug_state = 'corvid'
-    if do_debug:
-        debug_state += '-debug'
-
-    args = ['npx', debug_state, 'pull', flag]
-
-    try:
-        npx_updating = run(
-            args, cwd=to_update, capture_output=True)
-        npx_updating.check_returncode()
-
-        print(npx_updating.stdout)
-
-        if npx_updating.stderr:
-            raise f"""main.py: Error updating {to_update}
-{npx_updating.stderr}"""
-
-        qz_clone = clonedProjects()
-        qz_clone['last_updated'] = datetime.now()
-        write(qz_clone)
-        return 'done'
-    except CalledProcessError:
-        raise f"""main.py: Error updating {to_update}
-{CalledProcessError}"""
 
 
 def getSnapshots(_id_):
@@ -478,7 +442,7 @@ def toggleFavorite(_id_):
         qz_clone['local_projects'][focused_index]['favorited'] = 'false'
     else:
         qz_clone['local_projects'][focused_index]['favorited'] = 'true'
-    write(qz_clone)
+    qzWrite(qz_clone)
     return 'done'
 
 
@@ -492,24 +456,39 @@ def setDeadline(_id_, date_set):
 
     if isinstance(date_set, str):
         qz_clone['local_projects'][to_set]['due_date'] = date_set
-        write(qz_clone)
+        qzWrite(qz_clone)
         return 'done'
     raise 'main.py: Not a valid date object'
 
 
 def loginHandler():
+    qz_clone = clonedProjects()
     try:
+
         login_attempt = run(["npx", "corvid", "login"], capture_output=True)
-        login_attempt.check_returncode()
+
+        if login_attempt.check_returncode() == 0:
+            qz_clone['logged_in'] = 'true'
+        else:
+            qz_clone['logged_in'] = 'false'
 
     except CalledProcessError:
-        return "login aborted"
+        qz_clone['logged_in'] = 'false'
+
+    finally:
+        qzWrite(qz_clone)
 
 
 def logoutHandler():
     try:
-        logout_attempt = run(["npx", "corvid", "logout"], capture_output=True)
-        logout_attempt.check_returncode()
+        qz_clone = clonedProjects()
 
+        logout_attempt = run(["npx", "corvid", "logout"], capture_output=True)
+        if logout_attempt.check_returncode() == 0:
+            qz_clone['logged_in'] = 'false'
+        else:
+            qz_clone['logged_in'] = 'true'
+
+        qzWrite(qz_clone)
     except CalledProcessError:
         return "logout aborted"

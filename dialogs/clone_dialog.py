@@ -28,47 +28,75 @@ class Ui_Clone_Dialog(QtWidgets.QDialog):
 
     def setupUi(self, Clone_Dialog):
         Clone_Dialog.setObjectName("Clone_Dialog")
-        Clone_Dialog.resize(400, 225)
+        Clone_Dialog.resize(400, 171)
         Clone_Dialog.setStyleSheet(STYLES())
-        self.widget = QtWidgets.QWidget(Clone_Dialog)
-        self.widget.setGeometry(QtCore.QRect(30, 20, 341, 194))
-        self.widget.setObjectName("widget")
-        self.formLayout = QtWidgets.QFormLayout(self.widget)
-        self.formLayout.setContentsMargins(0, 0, 0, 0)
-        self.formLayout.setObjectName("formLayout")
-        self.name_input = QtWidgets.QLineEdit(self.widget)
-        self.name_input.setObjectName("name_input")
-        self.name_input.textChanged.connect(self.return_vals)
-
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.SpanningRole, self.name_input)
-        self.url_input = QtWidgets.QLineEdit(self.widget)
+        self.gridLayout = QtWidgets.QGridLayout(Clone_Dialog)
+        self.gridLayout.setObjectName("gridLayout")
+        self.gridLayout_2 = QtWidgets.QGridLayout()
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.url_input = QtWidgets.QLineEdit(Clone_Dialog)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(
+            self.url_input.sizePolicy().hasHeightForWidth())
+        self.url_input.setSizePolicy(sizePolicy)
         self.url_input.setObjectName("url_input")
         self.url_input.textChanged.connect(self.return_vals)
 
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.SpanningRole, self.url_input)
-        self.do_debug = QtWidgets.QCheckBox(self.widget)
+        self.gridLayout_2.addWidget(self.url_input, 1, 0, 1, 2)
+        self.name_input = QtWidgets.QLineEdit(Clone_Dialog)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(
+            self.name_input.sizePolicy().hasHeightForWidth())
+        self.name_input.setSizePolicy(sizePolicy)
+        self.name_input.setObjectName("name_input")
+        self.name_input.textChanged.connect(self.return_vals)
+
+        self.gridLayout_2.addWidget(self.name_input, 3, 0, 1, 2)
+        self.do_debug = QtWidgets.QCheckBox(Clone_Dialog)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(2)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.do_debug.sizePolicy().hasHeightForWidth())
+        self.do_debug.setSizePolicy(sizePolicy)
         self.do_debug.setObjectName("do_debug")
         self.do_debug.stateChanged.connect(self.return_vals)
 
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.LabelRole, self.do_debug)
-        self.ok_cancel = QtWidgets.QDialogButtonBox(self.widget)
+        self.gridLayout_2.addWidget(self.do_debug, 4, 0, 1, 1)
+        self.ok_cancel = QtWidgets.QDialogButtonBox(Clone_Dialog)
         self.ok_cancel.setOrientation(QtCore.Qt.Horizontal)
         self.ok_cancel.setStandardButtons(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.ok_cancel.setObjectName("ok_cancel")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.ok_cancel)
-        self.url_label = QtWidgets.QLabel(self.widget)
+        self.gridLayout_2.addWidget(self.ok_cancel, 4, 1, 1, 1)
+        self.url_label = QtWidgets.QLabel(Clone_Dialog)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.url_label.sizePolicy().hasHeightForWidth())
+        self.url_label.setSizePolicy(sizePolicy)
         self.url_label.setObjectName("url_label")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.SpanningRole, self.url_label)
-        self.name_label = QtWidgets.QLabel(self.widget)
+        self.gridLayout_2.addWidget(self.url_label, 0, 0, 1, 2)
+        self.name_label = QtWidgets.QLabel(Clone_Dialog)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.name_label.sizePolicy().hasHeightForWidth())
+        self.name_label.setSizePolicy(sizePolicy)
         self.name_label.setObjectName("name_label")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.SpanningRole, self.name_label)
+        self.gridLayout_2.addWidget(self.name_label, 2, 0, 1, 2)
+        self.gridLayout.addLayout(self.gridLayout_2, 0, 0, 1, 1)
 
         self.retranslateUi(Clone_Dialog)
         self.ok_cancel.accepted.connect(Clone_Dialog.accept)

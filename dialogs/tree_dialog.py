@@ -24,23 +24,20 @@ class Ui_Tree_Dialog(QtWidgets.QDialog):
         Tree_Dialog.setObjectName("Tree_Dialog")
         Tree_Dialog.resize(535, 270)
         Tree_Dialog.setStyleSheet(STYLES())
-        self.widget = QtWidgets.QWidget(Tree_Dialog)
-        self.widget.setGeometry(QtCore.QRect(20, 20, 491, 233))
-        self.widget.setObjectName("widget")
-        self.formLayout = QtWidgets.QFormLayout(self.widget)
-        self.formLayout.setContentsMargins(0, 0, 0, 0)
-        self.formLayout.setObjectName("formLayout")
-        self.tree_widget = QtWidgets.QTreeWidget(self.widget)
+        self.gridLayout = QtWidgets.QGridLayout(Tree_Dialog)
+        self.gridLayout.setObjectName("gridLayout")
+        self.gridLayout_2 = QtWidgets.QGridLayout()
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.tree_widget = QtWidgets.QTreeWidget(Tree_Dialog)
         self.tree_widget.setObjectName("tree_widget")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.SpanningRole, self.tree_widget)
-        self.ok_cancel = QtWidgets.QDialogButtonBox(self.widget)
+        self.gridLayout_2.addWidget(self.tree_widget, 0, 0, 1, 1)
+        self.ok_cancel = QtWidgets.QDialogButtonBox(Tree_Dialog)
         self.ok_cancel.setOrientation(QtCore.Qt.Horizontal)
         self.ok_cancel.setStandardButtons(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.ok_cancel.setObjectName("ok_cancel")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.ok_cancel)
+        self.gridLayout_2.addWidget(self.ok_cancel, 1, 0, 1, 1)
+        self.gridLayout.addLayout(self.gridLayout_2, 0, 0, 1, 1)
 
         for key, val in self.params['data']:
             lx_item = QtWidgets.QTreeWidgetItem(self.tree_widget, [
@@ -54,7 +51,6 @@ class Ui_Tree_Dialog(QtWidgets.QDialog):
                 lx_item.setFlags(lx_item.flags() | 128)
 
         self.tree_widget.currentItemChanged.connect(self.return_val)
-
         self.retranslateUi(Tree_Dialog)
         self.ok_cancel.accepted.connect(Tree_Dialog.accept)
         self.ok_cancel.rejected.connect(Tree_Dialog.reject)

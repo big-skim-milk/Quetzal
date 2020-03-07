@@ -15,13 +15,11 @@ class Ui_About_Dialog(QtWidgets.QDialog):
         About_Dialog.setObjectName("About_Dialog")
         About_Dialog.resize(318, 209)
         About_Dialog.setStyleSheet(STYLES())
-        self.widget = QtWidgets.QWidget(About_Dialog)
-        self.widget.setGeometry(QtCore.QRect(26, 20, 261, 171))
-        self.widget.setObjectName("widget")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.widget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout = QtWidgets.QGridLayout(About_Dialog)
+        self.gridLayout.setObjectName("gridLayout")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.quetzal_label = QtWidgets.QLabel(self.widget)
+        self.quetzal_label = QtWidgets.QLabel(About_Dialog)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -36,7 +34,7 @@ class Ui_About_Dialog(QtWidgets.QDialog):
         self.quetzal_label.setOpenExternalLinks(True)
         self.quetzal_label.setObjectName("quetzal_label")
         self.verticalLayout.addWidget(self.quetzal_label)
-        self.label_2 = QtWidgets.QLabel(self.widget)
+        self.label_2 = QtWidgets.QLabel(About_Dialog)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -51,7 +49,7 @@ class Ui_About_Dialog(QtWidgets.QDialog):
         self.label_2.setOpenExternalLinks(True)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
-        self.close_button = QtWidgets.QPushButton(self.widget)
+        self.close_button = QtWidgets.QPushButton(About_Dialog)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -63,6 +61,7 @@ class Ui_About_Dialog(QtWidgets.QDialog):
         self.close_button.setObjectName("close_button")
         self.verticalLayout.addWidget(
             self.close_button, 0, QtCore.Qt.AlignHCenter)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(About_Dialog)
         self.close_button.clicked.connect(About_Dialog.close)
@@ -73,6 +72,6 @@ class Ui_About_Dialog(QtWidgets.QDialog):
         About_Dialog.setWindowTitle(
             _translate("About_Dialog", "About Quetzal"))
         self.quetzal_label.setText(_translate(
-            "About_Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:14pt; font-weight:600;\">Quetzal </span><span style=\" font-size:12pt; font-weight:600;\">v0.1</span></p></body></html>"))
+            "About_Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:14pt; font-weight:600;\">Quetzal </span><span style=\" font-size:12pt; font-weight:600;\">v0.1.1</span></p></body></html>"))
         self.label_2.setText(_translate("About_Dialog", "<html><head/><body><p align=\"center\"><a href=\"https://github.com/wix-incubator/corvid\"><span style=\" font-size:12pt; text-decoration: underline; color:#2a76c6;\">Wix Local Editor</span></a><span style=\" font-size:12pt;\"> Projects Manager</span></p><p align=\"center\"><a href=\"https://github.com/big-skim-milk/Quetzal\"><span style=\" font-size:11pt; text-decoration: underline; color:#2a76c6;\">Main Page</span></a></p></body></html>"))
         self.close_button.setText(_translate("About_Dialog", "Close"))

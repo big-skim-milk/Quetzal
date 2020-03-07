@@ -1,67 +1,40 @@
 QWidget {
-
   font: 75 12pt "Linux Libertine O";
 }
 
-
-
 QPushButton:hover {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
-
-
 
 QCheckBox::indicator:hover {
-
-  border-color: #3465a4;
+  border-color: #1fa2c7;
 }
-
-
 
 QCheckBox::indicator:checked {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
 
-
-
-QLabel {
-
-  color: #3465a4;
+QLabel#quetzal_label,
+QLabel#error_display {
+  color: #1fa2c7;
 }
-
-
 
 QTreeWidget::item:hover {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
-
-
 
 QTreeWidget::item:selected {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
-
-
 
 QMenu::item:selected {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
-
-
 
 QMenu::item:pressed {
-
-  background-color: #3465a4;
+  background-color: #1fa2c7;
 }
 
-
-
 QLineEdit:focus {
-
-  color: #3465a4;
+  color: #1fa2c7;
 }

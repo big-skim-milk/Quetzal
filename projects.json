@@ -1,98 +1,106 @@
 {
-    "_config": {
-        "font": {
-            "family": "none",
-            "size": "none"
-        },
-        "highlight_color": "#3465a4",
-        "terminal": "mate-terminal",
-        "text_editor": "codium",
-        "update_on_start": "False"
+  "_config": {
+    "font": {
+      "family": "none",
+      "size": "none"
     },
-    "_created": "2020-03-05 08:56:04.220747",
-    "_init": "yes",
-    "_os": "Linux",
-    "_watched": {
-        "main": "/home/hal9000"
+    "highlight_color": "none",
+    "terminal": "gnome-terminal",
+    "text_editor": "none",
+    "update_on_start": "false"
+  },
+  "_created": "2020-03-06 19:48:01.340977",
+  "_init": "yes",
+  "_os": "Linux",
+  "_watched": {
+    "main": "/home/hal9000"
+  },
+  "last_updated": "2020-03-06 19:48:01.340990",
+  "local_projects": [
+    {
+      "abs_dir": "/home/hal9000/MEGAsync/EFPD",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340925",
+      "slug": "EFPD"
     },
-    "last_updated": "2020-03-05 08:56:00.417281",
-    "local_projects": [
-        {
-            "abs_dir": "/home/hal9000/Documents/REIF",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220715",
-            "slug": "REIF"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/testsite",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220717",
-            "slug": "testsite"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/Nicolai",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220719",
-            "slug": "Nicolai"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/sk",
-            "due_date": "11 03 2020, 16:00",
-            "favorited": "true",
-            "last_updated": "2020-03-05 08:56:04.220724",
-            "slug": "sk"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/improov",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220726",
-            "slug": "improov"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/EFPD",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220729",
-            "slug": "EFPD"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/notes_bup",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220732",
-            "slug": "notes_bup"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/pollemix",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220735",
-            "slug": "pollemix"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/trades",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220738",
-            "slug": "trades"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/WCT",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220741",
-            "slug": "WCT"
-        },
-        {
-            "abs_dir": "/home/hal9000/Documents/notifications",
-            "due_date": "none",
-            "favorited": "false",
-            "last_updated": "2020-03-05 08:56:04.220743",
-            "slug": "notifications"
-        }
-    ]
+    {
+      "abs_dir": "/home/hal9000/Sync/EFPD.old",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340939",
+      "slug": "EFPD.old"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/testsite",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340942",
+      "slug": "testsite"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/Nicolai",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340947",
+      "slug": "Nicolai"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/sk",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340951",
+      "slug": "sk"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/improov",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340953",
+      "slug": "improov"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/EFPD",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340957",
+      "slug": "EFPD"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/notes_bup",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340959",
+      "slug": "notes_bup"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/pollemix",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340961",
+      "slug": "pollemix"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/trades",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340963",
+      "slug": "trades"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/WCT",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340965",
+      "slug": "WCT"
+    },
+    {
+      "abs_dir": "/home/hal9000/Documents/notifications",
+      "due_date": "none",
+      "favorited": "false",
+      "last_updated": "2020-03-06 19:48:01.340968",
+      "slug": "notifications"
+    }
+  ],
+  "logged_in": "false"
 }

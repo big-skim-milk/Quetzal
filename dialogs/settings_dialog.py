@@ -11,7 +11,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from dialogs.confirm_dialog import Ui_Confirm_Dialog
 from get_styles import STYLES
 from set_styles import setCustomStyles
-from quetzal import projects, write
+from quetzal import qzWrite
+from threading import Timer
 
 
 def validJson(plain_text):
@@ -22,6 +23,12 @@ def validJson(plain_text):
         return False
 
 
+def formatJson():
+    with open('projects.json', 'r') as curr_json:
+        lines = curr_json.read()
+        return lines
+
+
 class Ui_Settings_Dialog(QtWidgets.QDialog):
     def __init__(self, params):
         super().__init__()
@@ -30,33 +37,29 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
         self.new_conf = {}
         self.last_color = params['highlight_color']
         self.last_font = params['font']
-        self.new_font = {'family': '', 'size': ''}
+        self.new_font = {'fam': '', 'size': ''}
         self.new_color = ""
         self.new_json = ""
         self.re_styles = {}
+        self.init_styles_text = STYLES()
 
     def returnVal(self):
         self.re_styles = {
             'font': {
-                'pre_size': self.last_font['size'],
-                'pre_fam': self.last_font['family'],
-                'post_size': self.new_font['size'],
-                'post_fam': self.new_font['family']
+                'size': self.new_font['size'],
+                'fam': self.new_font['fam']
             },
-            'color': {
-                'prev': self.last_color,
-                'new': self.new_color
-            }
+            'color': self.new_color
         }
 
         curr_vals = {
             'terminal': self.terminal_input.text(),
             'text_editor': self.editor_input.text(),
             'update_on_start': str(self.refresh_on_start.isChecked()),
-            'highlight_color': self.re_styles['color']['new'],
+            'highlight_color': self.re_styles['color'],
             'font': {
                 'size': self.new_font['size'],
-                'family': self.new_font['family']
+                'family': self.new_font['fam']
             }
         }
 
@@ -72,9 +75,9 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
     def fontPreview(self):
         new_font = self.font_dropdown.currentFont()
         self.new_font['size'] = f"{self.font_size_slider.value()}pt"
-        self.new_font['family'] = new_font.toString().split(',')[0]
+        self.new_font['fam'] = new_font.toString().split(',')[0]
         self.font_display.setStyleSheet(
-            f"font-family: {self.new_font['family']};font-size: {self.new_font['size']};")
+            f"font-family: {self.new_font['fam']};font-size: {self.new_font['size']};")
         self.returnVal()
 
     def colorDialog(self):
@@ -90,7 +93,7 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
 
     def jsonSet(self):
         if validJson(self.new_json) and self.confirmDialog():
-            write(self.new_json)
+            qzWrite(self.new_json)
 
     def confirmDialog(self):
         dialog = QtWidgets.QDialog()
@@ -101,21 +104,38 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
             return True
         return False
 
+    def tabChange(self):
+        _index_ = self.tab_selector.currentText().lower()
+        if "json" in _index_:
+            self.direct_edit_stack.setCurrentWidget(self.json_editor_page)
+        elif "style" in _index_:
+            self.direct_edit_stack.setCurrentWidget(self.style_editor_page)
+        elif "key" in _index_:
+            self.direct_edit_stack.setCurrentWidget(self.key_bindings_page)
+        else:
+            return False
+
     def setupUi(self, Settings_Dialog):
         Settings_Dialog.setObjectName("Settings_Dialog")
-        Settings_Dialog.resize(543, 301)
-        self.widget = QtWidgets.QWidget(Settings_Dialog)
-        self.widget.setGeometry(QtCore.QRect(10, 10, 521, 281))
-        self.widget.setObjectName("widget")
-        self.gridLayout = QtWidgets.QGridLayout(self.widget)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
+        Settings_Dialog.resize(558, 318)
+        Settings_Dialog.setStyleSheet(STYLES())
+        self.gridLayout_2 = QtWidgets.QGridLayout(Settings_Dialog)
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.styles_editor = QtWidgets.QTabWidget(self.widget)
-        self.styles_editor.setObjectName("styles_editor")
+        self.settings_tabs = QtWidgets.QTabWidget(Settings_Dialog)
+        self.settings_tabs.setObjectName("settings_tabs")
         self.basic_settings = QtWidgets.QWidget()
         self.basic_settings.setObjectName("basic_settings")
+        self.gridLayout_3 = QtWidgets.QGridLayout(self.basic_settings)
+        self.gridLayout_3.setObjectName("gridLayout_3")
+        self.formLayout_2 = QtWidgets.QFormLayout()
+        self.formLayout_2.setObjectName("formLayout_2")
+        self.terminal_label = QtWidgets.QLabel(self.basic_settings)
+        self.terminal_label.setObjectName("terminal_label")
+        self.formLayout_2.setWidget(
+            0, QtWidgets.QFormLayout.SpanningRole, self.terminal_label)
         self.terminal_input = QtWidgets.QLineEdit(self.basic_settings)
-        self.terminal_input.setGeometry(QtCore.QRect(10, 30, 359, 33))
         self.terminal_input.setObjectName("terminal_input")
         self.terminal_input.textChanged.connect(self.returnVal)
         if self.params['terminal'] != 'none':
@@ -123,8 +143,13 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
         else:
             self.terminal_input.setPlaceholderText('')
 
+        self.formLayout_2.setWidget(
+            1, QtWidgets.QFormLayout.SpanningRole, self.terminal_input)
+        self.editor_label = QtWidgets.QLabel(self.basic_settings)
+        self.editor_label.setObjectName("editor_label")
+        self.formLayout_2.setWidget(
+            2, QtWidgets.QFormLayout.SpanningRole, self.editor_label)
         self.editor_input = QtWidgets.QLineEdit(self.basic_settings)
-        self.editor_input.setGeometry(QtCore.QRect(10, 90, 359, 33))
         self.editor_input.setObjectName("editor_input")
         self.editor_input.textChanged.connect(self.returnVal)
         if self.params['text_editor'] != 'none':
@@ -132,71 +157,41 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
         else:
             self.editor_input.setPlaceholderText('')
 
-        self.terminal_label = QtWidgets.QLabel(self.basic_settings)
-        self.terminal_label.setGeometry(QtCore.QRect(10, 10, 359, 17))
-        self.terminal_label.setObjectName("terminal_label")
-        self.editor_label = QtWidgets.QLabel(self.basic_settings)
-        self.editor_label.setGeometry(QtCore.QRect(10, 70, 359, 17))
-        self.editor_label.setObjectName("editor_label")
+        self.formLayout_2.setWidget(
+            3, QtWidgets.QFormLayout.SpanningRole, self.editor_input)
         self.refresh_on_start = QtWidgets.QCheckBox(self.basic_settings)
-        self.refresh_on_start.setGeometry(QtCore.QRect(10, 140, 359, 23))
         self.refresh_on_start.setObjectName("refresh_on_start")
         if self.params['update_on_start'] == 'True':
             self.refresh_on_start.setChecked(True)
         self.refresh_on_start.stateChanged.connect(self.returnVal)
-
-        self.styles_editor.addTab(self.basic_settings, "")
+        self.formLayout_2.setWidget(
+            4, QtWidgets.QFormLayout.SpanningRole, self.refresh_on_start)
+        self.gridLayout_3.addLayout(self.formLayout_2, 0, 0, 1, 1)
+        self.settings_tabs.addTab(self.basic_settings, "")
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
-        self.widget1 = QtWidgets.QWidget(self.tab_3)
-        self.widget1.setGeometry(QtCore.QRect(10, 10, 235, 181))
-        self.widget1.setObjectName("widget1")
-        self.formLayout = QtWidgets.QFormLayout(self.widget1)
-        self.formLayout.setContentsMargins(0, 0, 0, 0)
-        self.formLayout.setObjectName("formLayout")
-        self.font_label_3 = QtWidgets.QLabel(self.widget1)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.tab_3)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.font_label_3 = QtWidgets.QLabel(self.tab_3)
         self.font_label_3.setObjectName("font_label_3")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.SpanningRole, self.font_label_3)
-        self.font_dropdown = QtWidgets.QFontComboBox(self.widget1)
+        self.verticalLayout_2.addWidget(self.font_label_3)
+        self.font_dropdown = QtWidgets.QFontComboBox(self.tab_3)
         self.font_dropdown.setObjectName("font_dropdown")
         if self.params['font']['family'] != 'none':
             self.font_dropdown.setCurrentFont(
                 QtGui.QFont(self.params['font']['family']))
         self.font_dropdown.currentFontChanged.connect(self.fontPreview)
 
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.SpanningRole, self.font_dropdown)
+        self.verticalLayout_2.addWidget(self.font_dropdown)
         spacerItem = QtWidgets.QSpacerItem(
             20, 6, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.formLayout.setItem(
-            2, QtWidgets.QFormLayout.SpanningRole, spacerItem)
-        self.font_size_label = QtWidgets.QLabel(self.widget1)
+        self.verticalLayout_2.addItem(spacerItem)
+        self.font_size_label = QtWidgets.QLabel(self.tab_3)
         self.font_size_label.setObjectName("font_size_label")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.SpanningRole, self.font_size_label)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            20, 6, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.formLayout.setItem(
-            5, QtWidgets.QFormLayout.SpanningRole, spacerItem1)
-        self.palette_label = QtWidgets.QLabel(self.widget1)
-        self.palette_label.setObjectName("palette_label")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.LabelRole, self.palette_label)
-        self.palette_trigger = QtWidgets.QPushButton(self.widget1)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.palette_trigger.sizePolicy().hasHeightForWidth())
-        self.palette_trigger.setSizePolicy(sizePolicy)
-        self.palette_trigger.setObjectName("palette_trigger")
-        self.palette_trigger.clicked.connect(self.colorDialog)
-
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.palette_trigger)
-        self.font_size_slider = QtWidgets.QSlider(self.widget1)
+        self.verticalLayout_2.addWidget(self.font_size_label)
+        self.font_size_slider = QtWidgets.QSlider(self.tab_3)
         self.font_size_slider.setOrientation(QtCore.Qt.Horizontal)
         self.font_size_slider.setObjectName("font_size_slider")
         self.font_size_slider.setMinimum(9)
@@ -210,15 +205,29 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
             self.font_size_slider.setValue(11)
         self.font_size_slider.valueChanged.connect(self.fontPreview)
 
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.SpanningRole, self.font_size_slider)
-        self.widget2 = QtWidgets.QWidget(self.tab_3)
-        self.widget2.setGeometry(QtCore.QRect(257, 10, 251, 180))
-        self.widget2.setObjectName("widget2")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.widget2)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.addWidget(self.font_size_slider)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 6, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_2.addItem(spacerItem1)
+        self.palette_label = QtWidgets.QLabel(self.tab_3)
+        self.palette_label.setObjectName("palette_label")
+        self.verticalLayout_2.addWidget(self.palette_label)
+        self.palette_trigger = QtWidgets.QPushButton(self.tab_3)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.palette_trigger.sizePolicy().hasHeightForWidth())
+        self.palette_trigger.setSizePolicy(sizePolicy)
+        self.palette_trigger.setObjectName("palette_trigger")
+        self.palette_trigger.clicked.connect(self.colorDialog)
+
+        self.verticalLayout_2.addWidget(self.palette_trigger)
+        self.horizontalLayout.addLayout(self.verticalLayout_2)
+        self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.font_display = QtWidgets.QPlainTextEdit(self.widget2)
+        self.font_display = QtWidgets.QPlainTextEdit(self.tab_3)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -232,7 +241,7 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
         self.font_display.setPlainText('Test new font here')
 
         self.verticalLayout.addWidget(self.font_display)
-        self.highlight_color_display = QtWidgets.QFrame(self.widget2)
+        self.highlight_color_display = QtWidgets.QFrame(self.tab_3)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -248,52 +257,61 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
             f"background-color: {self.last_color};")
 
         self.verticalLayout.addWidget(self.highlight_color_display)
-        self.styles_editor.addTab(self.tab_3, "")
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.settings_tabs.addTab(self.tab_3, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
+        self.gridLayout_4 = QtWidgets.QGridLayout(self.tab_2)
+        self.gridLayout_4.setObjectName("gridLayout_4")
+        self.tab_selector = QtWidgets.QComboBox(self.tab_2)
+        self.tab_selector.setObjectName("tab_selector")
+        self.tab_selector.addItem("")
+        self.tab_selector.addItem("")
+        self.tab_selector.addItem("")
+        self.tab_selector.currentIndexChanged.connect(self.tabChange)
+
+        self.gridLayout_4.addWidget(self.tab_selector, 0, 0, 1, 1)
         self.direct_edit_stack = QtWidgets.QStackedWidget(self.tab_2)
-        self.direct_edit_stack.setGeometry(QtCore.QRect(10, 10, 491, 181))
         self.direct_edit_stack.setObjectName("direct_edit_stack")
-        self.page_3 = QtWidgets.QWidget()
-        self.page_3.setObjectName("page_3")
-        self.key_bindings_editor = QtWidgets.QPlainTextEdit(self.page_3)
-        self.key_bindings_editor.setGeometry(QtCore.QRect(0, 30, 491, 151))
+        self.key_bindings_page = QtWidgets.QWidget()
+        self.key_bindings_page.setObjectName("key_bindings_page")
+        self.gridLayout_7 = QtWidgets.QGridLayout(self.key_bindings_page)
+        self.gridLayout_7.setObjectName("gridLayout_7")
+        self.key_bindings_editor = QtWidgets.QPlainTextEdit(
+            self.key_bindings_page)
         self.key_bindings_editor.setObjectName("key_bindings_editor")
-        self.key_bindings_label = QtWidgets.QLabel(self.page_3)
-        self.key_bindings_label.setGeometry(QtCore.QRect(10, 0, 359, 17))
-        self.key_bindings_label.setObjectName("key_bindings_label")
-        self.direct_edit_stack.addWidget(self.page_3)
-        self.page = QtWidgets.QWidget()
-        self.page.setObjectName("page")
-        self.json_editor = QtWidgets.QPlainTextEdit(self.page)
-        self.json_editor.setGeometry(QtCore.QRect(0, 30, 491, 151))
+        self.gridLayout_7.addWidget(self.key_bindings_editor, 0, 0, 1, 1)
+        self.direct_edit_stack.addWidget(self.key_bindings_page)
+        self.json_editor_page = QtWidgets.QWidget()
+        self.json_editor_page.setObjectName("json_editor_page")
+        self.gridLayout_5 = QtWidgets.QGridLayout(self.json_editor_page)
+        self.gridLayout_5.setObjectName("gridLayout_5")
+        self.json_editor = QtWidgets.QPlainTextEdit(self.json_editor_page)
         self.json_editor.setObjectName("json_editor")
-        self.json_editor.setPlainText(json.dumps(projects()))
+        self.json_editor.setPlainText(formatJson())
         self.json_editor.textChanged.connect(self.jsonChange)
 
-        self.json_label = QtWidgets.QLabel(self.page)
-        self.json_label.setGeometry(QtCore.QRect(10, 0, 359, 17))
-        self.json_label.setObjectName("json_label")
-        self.direct_edit_stack.addWidget(self.page)
-        self.page_2 = QtWidgets.QWidget()
-        self.page_2.setObjectName("page_2")
-        self.style_editor = QtWidgets.QPlainTextEdit(self.page_2)
-        self.style_editor.setGeometry(QtCore.QRect(0, 30, 491, 151))
+        self.gridLayout_5.addWidget(self.json_editor, 0, 0, 1, 1)
+        self.direct_edit_stack.addWidget(self.json_editor_page)
+        self.style_editor_page = QtWidgets.QWidget()
+        self.style_editor_page.setObjectName("style_editor_page")
+        self.gridLayout_6 = QtWidgets.QGridLayout(self.style_editor_page)
+        self.gridLayout_6.setObjectName("gridLayout_6")
+        self.style_editor = QtWidgets.QPlainTextEdit(self.style_editor_page)
         self.style_editor.setObjectName("style_editor")
-        self.style_editor.setPlainText(STYLES())
 
-        self.style_label = QtWidgets.QLabel(self.page_2)
-        self.style_label.setGeometry(QtCore.QRect(10, 0, 359, 17))
-        self.style_label.setObjectName("style_label")
-        self.direct_edit_stack.addWidget(self.page_2)
-        self.styles_editor.addTab(self.tab_2, "")
-        self.gridLayout.addWidget(self.styles_editor, 0, 0, 1, 1)
-        self.ok_cancel = QtWidgets.QDialogButtonBox(self.widget)
+        self.gridLayout_6.addWidget(self.style_editor, 0, 0, 1, 1)
+        self.direct_edit_stack.addWidget(self.style_editor_page)
+        self.gridLayout_4.addWidget(self.direct_edit_stack, 1, 0, 1, 1)
+        self.settings_tabs.addTab(self.tab_2, "")
+        self.gridLayout.addWidget(self.settings_tabs, 0, 0, 1, 1)
+        self.ok_cancel = QtWidgets.QDialogButtonBox(Settings_Dialog)
         self.ok_cancel.setOrientation(QtCore.Qt.Horizontal)
         self.ok_cancel.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel)
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.ok_cancel.setObjectName("ok_cancel")
         self.gridLayout.addWidget(self.ok_cancel, 1, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 1)
 
         def conditionalAccept():
             if len(self.new_json) > 0:
@@ -306,38 +324,33 @@ class Ui_Settings_Dialog(QtWidgets.QDialog):
                     self.re_styles['font'], self.re_styles['color'])
                 Settings_Dialog.accept()
 
+        self.style_editor.setPlainText(self.init_styles_text)
         self.retranslateUi(Settings_Dialog)
-        self.styles_editor.setCurrentIndex(0)
+        self.settings_tabs.setCurrentIndex(0)
         self.direct_edit_stack.setCurrentIndex(0)
         self.ok_cancel.accepted.connect(conditionalAccept)
         self.ok_cancel.rejected.connect(Settings_Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Settings_Dialog)
 
-    def retranslateUi(self, Settings_Dialog):
+    def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Settings_Dialog.setWindowTitle(_translate(
-            "Settings_Dialog", "Quetzal Settings"))
+        Dialog.setWindowTitle(_translate("Dialog", "Quetzal Settings"))
         self.terminal_label.setText(_translate(
-            "Settings_Dialog", "Open Terminal Command"))
-        self.editor_label.setText(_translate(
-            "Settings_Dialog", "Open Editor Command"))
+            "Dialog", "Open Terminal Command"))
+        self.editor_label.setText(_translate("Dialog", "Open Editor Command"))
         self.refresh_on_start.setText(
-            _translate("Settings_Dialog", "Refresh on start"))
-        self.styles_editor.setTabText(self.styles_editor.indexOf(
-            self.basic_settings), _translate("Settings_Dialog", "Configuration"))
-        self.font_label_3.setText(_translate(
-            "Settings_Dialog", "Change App Font"))
-        self.font_size_label.setText(_translate(
-            "Settings_Dialog", "Change Font Size"))
+            _translate("Dialog", "Refresh on start"))
+        self.settings_tabs.setTabText(self.settings_tabs.indexOf(
+            self.basic_settings), _translate("Dialog", "Configuration"))
+        self.font_label_3.setText(_translate("Dialog", "Change App Font"))
+        self.font_size_label.setText(_translate("Dialog", "Change Font Size"))
         self.palette_label.setText(_translate(
-            "Settings_Dialog", "Change Highlight Color"))
-        self.palette_trigger.setText(
-            _translate("Settings_Dialog", u"\U0001F3A8"))
-        self.styles_editor.setTabText(self.styles_editor.indexOf(
-            self.tab_3), _translate("Settings_Dialog", "Look and Feel"))
-        self.key_bindings_label.setText(
-            _translate("Settings_Dialog", "Key Bindings"))
-        self.json_label.setText(_translate("Settings_Dialog", "JSON Editor"))
-        self.style_label.setText(_translate("Settings_Dialog", "Style Editor"))
-        self.styles_editor.setTabText(self.styles_editor.indexOf(
-            self.tab_2), _translate("Settings_Dialog", "Advanced"))
+            "Dialog", "Change Highlight Color"))
+        self.palette_trigger.setText(_translate("Dialog", u"\U0001F3A8"))
+        self.settings_tabs.setTabText(self.settings_tabs.indexOf(
+            self.tab_3), _translate("Dialog", "Look and Feel"))
+        self.tab_selector.setItemText(0, _translate("Dialog", "Style Editor"))
+        self.tab_selector.setItemText(1, _translate("Dialog", "JSON Editor"))
+        self.tab_selector.setItemText(2, _translate("Dialog", "Key Bindings"))
+        self.settings_tabs.setTabText(self.settings_tabs.indexOf(
+            self.tab_2), _translate("Dialog", "Advanced"))
